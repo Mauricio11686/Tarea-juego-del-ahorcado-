@@ -1,0 +1,200 @@
+import random
+import tkinter as tk
+
+# Lista de palabras (sin tildes para simplificar la validación directa)
+PALABRAS = ["computadora", "python", "teclado", "internet", "programacion", "desarrollo"]
+INTENTOS_MAXIMOS = 6
+
+
+class JuegoAhorcado:
+
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Juego del Ahorcado")
+        self.root.geometry("400x530")
+        self.root.resizable(False, False)
+
+        # Variables de estado del juego
+        self.palabra_secreta = ""
+        self.letras_correctas = set()
+        self.letras_usadas = set()
+        self.intentos_restantes = INTENTOS_MAXIMOS
+
+        self.crear_interfaz()
+        self.nueva_partida()
+
+    def crear_interfaz(self):
+        # Título
+        lbl_titulo = tk.Label(
+            self.root, text="JUEGO DEL AHORCADO", font=("Arial", 16, "bold")
+        )
+        lbl_titulo.pack(pady=10)
+
+        # Lienzo (Canvas) para dibujar el ahorcado
+        self.canvas = tk.Canvas(self.root, width=180, height=150, bg="#F0F3F4")
+        self.canvas.pack(pady=5)
+        self.dibujar_base_horca()
+
+        # Palabra oculta
+        self.lbl_palabra = tk.Label(
+            self.root, text="", font=("Consolas", 22, "bold"), fg="#2C3E50"
+        )
+        self.lbl_palabra.pack(pady=10)
+
+        # Intentos restantes
+        self.lbl_intentos = tk.Label(
+            self.root, text="", font=("Arial", 11), fg="#C0392B"
+        )
+        self.lbl_intentos.pack(pady=2)
+
+        # Letras usadas
+        self.lbl_usadas = tk.Label(
+            self.root, text="", font=("Arial", 10), fg="#7F8C8D"
+        )
+        self.lbl_usadas.pack(pady=2)
+
+        # Mensaje de estado en pantalla
+        self.lbl_mensaje = tk.Label(
+            self.root, text="", font=("Arial", 11, "bold"), fg="#27AE60"
+        )
+        self.lbl_mensaje.pack(pady=5)
+
+        # Marco para la entrada de datos
+        frame_entrada = tk.Frame(self.root)
+        frame_entrada.pack(pady=5)
+
+        lbl_instruccion = tk.Label(
+            frame_entrada, text="Ingresa una letra:", font=("Arial", 11)
+        )
+        lbl_instruccion.pack(side=tk.LEFT, padx=5)
+
+        self.entry_letra = tk.Entry(
+            frame_entrada, font=("Arial", 14), width=3, justify="center"
+        )
+        self.entry_letra.pack(side=tk.LEFT, padx=5)
+        self.entry_letra.bind("<Return>", lambda event: self.procesar_intento())
+
+        self.btn_probar = tk.Button(
+            frame_entrada,
+            text="Probar",
+            command=self.procesar_intento,
+            font=("Arial", 10, "bold"),
+            bg="#2980B9",
+            fg="white",
+        )
+        self.btn_probar.pack(side=tk.LEFT, padx=5)
+
+        # Botón para reiniciar
+        btn_reiniciar = tk.Button(
+            self.root,
+            text="Nueva Partida",
+            command=self.nueva_partida,
+            font=("Arial", 10),
+            bg="#2ECC71",
+            fg="white",
+        )
+        btn_reiniciar.pack(pady=10)
+
+    def dibujar_base_horca(self):
+        self.canvas.delete("all")
+        self.canvas.create_line(30, 130, 130, 130, width=4, fill="#34495E")  # Base
+        self.canvas.create_line(50, 130, 50, 20, width=4, fill="#34495E")  # Poste vertical
+        self.canvas.create_line(50, 20, 110, 20, width=4, fill="#34495E")  # Viga horizontal
+        self.canvas.create_line(110, 20, 110, 40, width=3, fill="#34495E")  # Soga
+
+    def actualizar_dibujo(self):
+        errores = INTENTOS_MAXIMOS - self.intentos_restantes
+        if errores >= 1:  # Cabeza
+            self.canvas.create_oval(95, 40, 125, 70, width=3, outline="#C0392B")
+        if errores >= 2:  # Torso
+            self.canvas.create_line(110, 70, 110, 105, width=3, fill="#C0392B")
+        if errores >= 3:  # Brazo izquierdo
+            self.canvas.create_line(110, 80, 90, 95, width=3, fill="#C0392B")
+        if errores >= 4:  # Brazo derecho
+            self.canvas.create_line(110, 80, 130, 95, width=3, fill="#C0392B")
+        if errores >= 5:  # Pierna izquierda
+            self.canvas.create_line(110, 105, 95, 130, width=3, fill="#C0392B")
+        if errores >= 6:  # Pierna derecha
+            self.canvas.create_line(110, 105, 125, 130, width=3, fill="#C0392B")
+
+    def nueva_partida(self):
+        self.palabra_secreta = random.choice(PALABRAS)
+        self.letras_correctas.clear()
+        self.letras_usadas.clear()
+        self.intentos_restantes = INTENTOS_MAXIMOS
+
+        self.dibujar_base_horca()
+        self.entry_letra.config(state=tk.NORMAL)
+        self.btn_probar.config(state=tk.NORMAL)
+        self.lbl_mensaje.config(text="")
+        self.actualizar_pantalla()
+
+    def actualizar_pantalla(self):
+        palabra_mostrada = []
+        for letra in self.palabra_secreta:
+            if letra in self.letras_correctas:
+                palabra_mostrada.append(letra)
+            else:
+                palabra_mostrada.append("_")
+
+        self.lbl_palabra.config(text=" ".join(palabra_mostrada))
+        self.lbl_intentos.config(
+            text=f"Intentos restantes: {self.intentos_restantes}"
+        )
+
+        usadas_texto = (
+            ", ".join(sorted(self.letras_usadas)).upper()
+            if self.letras_usadas
+            else "Ninguna"
+        )
+        self.lbl_usadas.config(text=f"Letras usadas: {usadas_texto}")
+
+        # Comprobar si ganó
+        palabra_completada = all(
+            c in self.letras_correctas for c in self.palabra_secreta
+        )
+        if palabra_completada:
+            self.entry_letra.config(state=tk.DISABLED)
+            self.btn_probar.config(state=tk.DISABLED)
+            self.lbl_mensaje.config(
+                text="¡Felicidades! Ganaste la partida.", fg="#27AE60"
+            )
+
+        # Comprobar si perdió
+        elif self.intentos_restantes <= 0:
+            self.entry_letra.config(state=tk.DISABLED)
+            self.btn_probar.config(state=tk.DISABLED)
+            self.lbl_mensaje.config(
+                text=f"¡Perdiste! La palabra era: {self.palabra_secreta}", fg="#C0392B"
+            )
+
+    def procesar_intento(self):
+        entrada = self.entry_letra.get().strip().lower()
+        self.entry_letra.delete(0, tk.END)
+
+        if len(entrada) != 1 or not entrada.isalpha():
+          self.lbl_mensaje.config(
+              text="Ingresa solo una letra válida.", fg="#D35400"
+          )
+          return
+
+        if entrada in self.letras_usadas:
+            self.lbl_mensaje.config(text="Ya usaste esa letra.", fg="#D35400")
+            return
+
+        self.lbl_mensaje.config(text="")
+        self.letras_usadas.add(entrada)
+
+        if entrada in self.palabra_secreta:
+            self.letras_correctas.add(entrada)
+        else:
+            self.intentos_restantes -= 1
+            self.actualizar_dibujo()
+
+        self.actualizar_pantalla()
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = JuegoAhorcado(root)
+    root.mainloop()
